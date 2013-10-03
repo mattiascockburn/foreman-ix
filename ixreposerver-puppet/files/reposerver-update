@@ -1,0 +1,14 @@
+#!/bin/bash
+echo Reposerver Updater
+echo ==================
+echo Executing mrepo
+mrepo -ugvvv
+echo Executing apt-mirror
+apt-mirror /etc/aptmirror.list || echo apt-mirror failed
+echo Executing dependency fetcher for puppet
+cd /var/apt/mirror/puppet-deps
+for pkg in $(cat /etc/debian-puppet-deps); do
+	wget --timeout=10 --tries=3 --no-check-certificate -nv -c $pkg
+done
+dpkg-scanpackages ./ > Packages || echo Debian Repo generation failed
+touch /var/tmp/reposerver-update.lastrun

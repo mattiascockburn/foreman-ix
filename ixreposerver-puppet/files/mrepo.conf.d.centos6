@@ -1,0 +1,16 @@
+[centos6]
+name = CentOS $release ($arch)
+release = 6.4 
+arch = x86_64
+metadata = repomd repoview
+
+### ISO images
+iso = CentOS-6.4-x86_64-bin-DVD?.iso
+
+### Additional repositories
+#updates = http://centos.intergenia.de/6.4/updates/x86_64/Packages/
+
+epel = ftp://mirror.fraunhofer.de/download.fedora.redhat.com/epel/6/x86_64/
+
+puppet = http://yum.puppetlabs.com/el/6.4/products/x86_64/
+
