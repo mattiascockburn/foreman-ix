@@ -1,0 +1,16 @@
+echo Deactivating default CentOS repos and activating local ones
+for repo in /etc/yum.repos.d/*.repo; do
+    echo Clearing "$repo"
+    > "$repo"
+done
+
+for repo in os epel puppet; do
+cat <<EOF >/etc/yum.repos.d/${repo}-local.repo
+[${repo}]
+name=${repo} local - \$basearch
+baseurl=http://reposerver.test.int/mrepo/centos<%= @host.operatingsystem.major %>-<%= @host.architecture %>/RPMS.${repo}
+enabled=1
+gpgcheck=0
+EOF
+done
+

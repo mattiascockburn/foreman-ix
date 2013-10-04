@@ -1,0 +1,109 @@
+# Locale, country and keyboard settings
+d-i debian-installer/locale string en_US
+d-i console-setup/ask_detect boolean false
+d-i console-setup/modelcode string pc105
+d-i console-setup/variant USA
+d-i console-setup/layout USA
+d-i console-setup/layoutcode string us
+
+# Allow unsigned packages to be installed, needed because we have a DVD as install source
+# Mattias Giese, 2013-10-02
+d-i debian-installer/allow_unauthenticated  string  true
+
+<% if @host.operatingsystem.name == "Debian" -%>
+<% if @host.operatingsystem.major.to_i >= 7 -%>
+d-i keymap select us
+<% end -%>
+<% end -%>
+
+# Network configuration
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string <%= @host %>
+d-i netcfg/get_domain string <%= @host.domain %>
+d-i netcfg/wireless_wep string
+
+d-i hw-detect/load_firmware boolean true
+
+# Mirror settings
+d-i mirror/country string manual
+d-i mirror/http/hostname string <%= @preseed_server %>
+d-i mirror/http/directory string <%= @preseed_path %>
+d-i mirror/http/proxy string
+d-i mirror/codename string <%= @host.operatingsystem.release_name %>
+d-i mirror/suite string <%= @host.operatingsystem.release_name %>
+d-i mirror/udeb/suite string <%= @host.operatingsystem.release_name %>
+
+d-i apt-setup/use_mirror boolean true
+
+# Time settings
+d-i clock-setup/utc boolean true
+d-i time/zone string UTC
+
+# NTP
+d-i clock-setup/ntp boolean true
+d-i clock-setup/ntp-server string ntp
+
+# Set alignment for automatic partitioning
+# Choices: cylinder, minimal, optimal
+#d-i partman/alignment select cylinder
+
+<%= @host.diskLayout %>
+
+# Install different kernel
+#d-i base-installer/kernel/image string linux-server
+
+# User settings
+d-i passwd/root-password-crypted password <%= root_pass %>
+user-setup-udeb passwd/root-login boolean true
+d-i passwd passwd/make-user boolean false
+user-setup-udeb passwd/make-user boolean false
+
+# This was in a conditional block before, but we want puppet3 on every host, so make it mandatory
+# Mattias Giese, 2013-10-02
+# UPDATE: Does not seem to work correctly, additional repos are now configured in the finish script
+# Mattias Giese, 2013-10-04
+# Puppetlabs repo
+#d-i apt-setup/local1/repository string \
+#    http://reposerver.test.int/apt/mirror/apt.puppetlabs.com <%= @host.operatingsystem.release_name %> main dependencies
+#    d-i apt-setup/local1/comment string Puppetlabs packages
+#    d-i apt-setup/local1/key string http://reposerver.test.int/apt/gpg/puppetlabs-apt.gpg
+#d-i apt-setup/local1/repository string \
+#    http://reposerver.test.int/apt/mirror/puppet-deps ./
+#    d-i apt-setup/local1/comment string Needed deps not found on DVD-1
+
+# Install minimal task set (see tasksel --task-packages minimal)
+tasksel tasksel/first multiselect minimal
+
+<% if @host.operatingsystem.name == "Ubuntu" and @host.operatingsystem.major.to_i == 10 -%>
+  <% puppet_package = "puppet/lucid-backports" -%>
+d-i apt-setup/backports boolean true
+<% else -%>
+  <% puppet_package = "puppet" -%>
+<% end -%>
+
+# Install some base packages
+# Notice: Installation of puppet package not possible because of aforementioned problem with custom repos
+# Installation will be done in finish script
+# Mattias Giese, 2013-10-04
+d-i pkgsel/include string <%= puppet_package %> lsb-release openssh-server vim htop less screen
+#d-i pkgsel/update-policy select unattended-upgrades
+# Do not try to install updates, because we do not have a update repo mirrored
+# Mattias Giese, 2013-10-02
+d-i pkgsel/update-policy select none
+
+# Please do not try to setup basic services like security-updates and so on, because we do not have any
+# Mattias Giese, 2013-10-02
+d-i apt-setup/services-select none
+
+popularity-contest popularity-contest/participate boolean false
+
+# Boot loader settings
+#grub-pc grub-pc/hidden_timeout boolean false
+#grub-pc grub-pc/timeout string 10
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/with_other_os boolean true
+
+d-i finish-install/reboot_in_progress note
+
+d-i preseed/late_command string wget <%= foreman_url("finish") %> -O /target/tmp/finish.sh && in-target chmod +x /tmp/finish.sh && in-target /tmp/finish.sh
+

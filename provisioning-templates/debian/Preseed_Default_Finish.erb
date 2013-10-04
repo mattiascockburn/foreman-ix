@@ -1,0 +1,17 @@
+# Allow unsigned packages and ignore the warning, needed for our installation source.
+# Mattias Giese, 2013-10-02
+echo 'APT::Get::AllowUnauthenticated "true";' > /etc/apt/apt.conf.d/99trust_unsigned
+
+#Hacky way to include custom repos, but the preseed does not seem to want my custom ones :/
+# Mattias Giese, 2013-10-03
+cat <<EOF >/etc/apt/sources.list.d/localrepos.list
+deb http://reposerver.test.int:80/apt/mirror/apt.puppetlabs.com wheezy main dependencies
+deb http://reposerver.test.int:80/apt/mirror/puppet-deps ./
+EOF
+
+apt-get update
+apt-get --assume-yes install puppet
+
+cat > /etc/puppet/puppet.conf << EOF
+<%= snippets "puppet.conf" %>
+EOF
